@@ -6,6 +6,7 @@
     <RootNamespace>PhillyFreeParking</RootNamespace>
     <InterpreterId>{9e361df0-9f47-4d92-a54c-6a30e2661dcd}</InterpreterId>
     <InterpreterVersion>2.7</InterpreterVersion>
+    <NameOfLastUsedPublishProfile>phillyfreeparking (2)</NameOfLastUsedPublishProfile>
   </PropertyGroup>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -52,6 +53,8 @@
     <Folder Include="PhillyFreeParking\" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="phillyfreeparking.pubxml" />
+    <None Include="phillyfreeparking %282%29.pubxml" />
     <Content Include="requirements.txt" />
     <Content Include="db.sqlite3" />
     <Content Include="app\static\app\content\bootstrap.css" />

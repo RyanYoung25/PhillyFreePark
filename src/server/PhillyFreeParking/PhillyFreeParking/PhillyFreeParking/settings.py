@@ -17,14 +17,13 @@ ADMINS = (
 )
 
 MANAGERS = ADMINS
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': path.join(PROJECT_ROOT, 'db.sqlite3'),
-        'USER': '',
-        'PASSWORD': '',
-        'HOST': '',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'phillyfAy1CqTnop',
+        'USER': 'b4ad37ce7718ca',
+        'PASSWORD': 'e2be8762',
+        'HOST': 'us-cdbr-azure-northcentral-a.cleardb.com',
         'PORT': '',
     }
 }
@@ -131,6 +130,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'app',
+    'rest_framework',
     # Uncomment the next line to enable the admin:
     # 'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:

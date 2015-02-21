@@ -20,7 +20,7 @@ var mapOptions = {
     zoom: 13,
     center: new google.maps.LatLng(53.7877, -2.9832)
 };
-console.log
+
 var map = new google.maps.Map($("#map")[0],mapOptions);
 
 google.maps.event.addListener(map, 'click', function(event){

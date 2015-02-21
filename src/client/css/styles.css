@@ -21,3 +21,11 @@ html, body {
 	top: 20px;
 	left: 20px;
 }
+
+.alert {
+	position: fixed;
+	top: 10%;
+	width: 90%;
+	left: 5%;
+	display: none;
+}

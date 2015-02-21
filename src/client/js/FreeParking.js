@@ -2,7 +2,8 @@
 
 var mapOptions = {
     zoom: 15,
-    center: new google.maps.LatLng(39.9500, -75.1667)
+    center: new google.maps.LatLng(39.9500, -75.1667),
+    disableDefaultUI: true
 };
 var map = new google.maps.Map($("#map")[0],mapOptions); 
 
@@ -15,6 +16,9 @@ var directionsService = new google.maps.DirectionsService();
 
 // Stores array of all paths to be drawn
 var parkingRoutes = [];
+
+// Save all markers locally
+var markers = [];
 
 
 //Initialize 
@@ -64,6 +68,7 @@ function drawStreet(startLatLng, endLatLng, category)
             break;
         default:
             console.log('Category: ' + category + " does not exist");
+            color = "transparent";
             break;
     }
     //Make the line path
@@ -113,6 +118,7 @@ google.maps.event.addListener(map, 'click', function(event){
 
     if(click1 == null)
     {
+        clearMarkers();
         click1 = location;
     }
     else 
@@ -120,6 +126,8 @@ google.maps.event.addListener(map, 'click', function(event){
         drawStreet(click1, location, "Meter");
         click1 = null;
     }
+
+    addMarker(location);
 });
 
 
@@ -131,7 +139,7 @@ google.maps.event.addListener(map, 'click', function(event){
  *         category - The type of line to color the street
  */
 function sendData(startLatLng, endLatLng, category){
-    $.post("http://phillyfreepark.com/api",{
+    $.post("http://phillyfreepark.com/api",{ // or whatever the actual URL is
         start: startLatLng,
         end: endLatLng,
         category: category
@@ -149,17 +157,33 @@ function sendData(startLatLng, endLatLng, category){
  */
 function addMarker(location) {
     var marker = new google.maps.Marker({
-        position: myLatlng,
+        position: location,
         map: map,
         title: 'Hello World!'
     });
+    markers.push(marker);
+}
+
+// Removes the markers from the map, but keeps them in the array.
+function clearMarkers() {
+    for (var i = 0; i < markers.length; i++) {
+        markers[i].setMap(null);
+    }
+    markers = [];
 }
 
 
-
-// Callback for selecting different parking types
+/**
+ * Callback for selecting different parking types
+ */
 $(document).on('click', '.dropdown-menu li a', function () {
-    console.log("Selected Option: " + $(this).text());
+    // Display and hide the alert when selecing new parking option
+    $("#parkingType").text($(this).text());
+    $(".alert").show(10,function(){
+        setTimeout(function(){
+            $(".alert").hide(1000);
+        }, 1000);
+    });
 });
 
 

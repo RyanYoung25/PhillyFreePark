@@ -7,19 +7,19 @@ var mapOptions = {
 };
 var map = new google.maps.Map($("#map")[0],mapOptions); 
 
-var directionsDisplay = new google.maps.DirectionsRenderer({
-    suppressMarkers: true,
-    map: map
-});
-
 var directionsService = new google.maps.DirectionsService();
 
 // Stores array of all paths to be drawn
 var parkingRoutes = [];
 
-// Save all markers locally
+// Save all markers (google.maps.Marker()) locally
 var markers = [];
 
+// Save all directions (google.maps.DirectionsRenderer()) locally
+// Saved in object for easy removal
+var directionsDisplays = {};
+
+var selectedParkingType = "Free";
 
 //Initialize 
 $("body").load(function(){
@@ -89,12 +89,17 @@ function drawStreet(startLatLng, endLatLng, category)
 
             var regex = /\d+[a-zA-Z]?(-\d+[a-zA-Z]?)?\s/g;
             var startStreetName = startArray[0].replace(regex, '');
-            var endStreetName = endArray[0].replace(regex, '');
+            var endStreetName = endArray[0].replace(regex, ''); 
 
             if(startStreetName == endStreetName)
             {
-                directionsDisplay.setOptions({polylineOptions: streetLine});
-                directionsDisplay.setDirections(response);
+                var directions = new google.maps.DirectionsRenderer({
+                    suppressMarkers: true,
+                    map: map
+                });
+                directions.setOptions({polylineOptions: streetLine});
+                directions.setDirections(response);
+                directionsDisplays[Object.keys(directionsDisplays).length] = directions;
             }
             else
             {
@@ -104,31 +109,12 @@ function drawStreet(startLatLng, endLatLng, category)
             }
         }
     });
-}
+};
 
 
-var click1 = null;
-
-google.maps.event.addListener(map, 'click', function(event){
-    var location = event.latLng;
-
-    var marker = new google.maps.Marker({
-        position: location
-    });
-
-    if(click1 == null)
-    {
-        clearMarkers();
-        click1 = location;
-    }
-    else 
-    {
-        drawStreet(click1, location, "Meter");
-        click1 = null;
-    }
-
-    addMarker(location);
-});
+function removeStreet(streetID){
+    delete directionsDisplays[streetID];
+};
 
 
 /**
@@ -158,18 +144,26 @@ function sendData(startLatLng, endLatLng, category){
 function addMarker(location) {
     var marker = new google.maps.Marker({
         position: location,
-        map: map,
-        title: 'Hello World!'
+        map: map
     });
     markers.push(marker);
 }
 
-// Removes the markers from the map, but keeps them in the array.
+// Removes the markers from the map
 function clearMarkers() {
     for (var i = 0; i < markers.length; i++) {
         markers[i].setMap(null);
     }
     markers = [];
+}
+
+// Removes paths and markers from the map
+function clearPaths(){
+    for (var i in directionsDisplays) {
+        directionsDisplays[i].setMap(null);
+    }
+    directionsDisplays = {};
+    clearMarkers();
 }
 
 
@@ -179,6 +173,7 @@ function clearMarkers() {
 $(document).on('click', '.dropdown-menu li a', function () {
     // Display and hide the alert when selecing new parking option
     $("#parkingType").text($(this).text());
+    selectedParkingType = $(this).data("category");
     $(".alert").show(10,function(){
         setTimeout(function(){
             $(".alert").hide(1000);
@@ -187,8 +182,37 @@ $(document).on('click', '.dropdown-menu li a', function () {
 });
 
 
-// Test:
-/*function test(){
-    drawStreet(new google.maps.LatLng(53.79370554255467, -2.991950511932373), new google.maps.LatLng(53.79369286762782, -2.988302707672119), "Meter");
-}
-$("#Test").click(test());*/
+$("#resetPaths").click(clearPaths);
+$('.btn-group button').click(function(){
+    $(this).parent().children().removeClass('active');
+});
+
+
+// The event listeners for the Map
+
+var click1 = null;
+google.maps.event.addListener(map, 'click', function(event){
+    var location = event.latLng;
+
+    var marker = new google.maps.Marker({
+        position: location
+    });
+
+    if(click1 == null)
+    {
+        clearMarkers();
+        click1 = location;
+    }
+    else 
+    {
+        drawStreet(click1, location, selectedParkingType);
+        click1 = null;
+    }
+
+    addMarker(location);
+});
+
+google.maps.event.addListener(map, 'bounds_changed', function(event){
+
+});
+

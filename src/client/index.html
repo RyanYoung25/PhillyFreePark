@@ -16,19 +16,23 @@
     <body>
         <div id="map"></div>
 
-        <button id="Test" class="btn btn-default">Test</button>
+        <!--<button id="Test" class="btn btn-default">Test</button>-->
 
-        <div id="parkingOptions" class="dropdown">
-            <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-expanded="true">
-                Parking Type <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1">
-                <li role="presentation"><a role="menuitem" tabindex="-1" href="#">Free</a></li>
-                <li role="presentation"><a role="menuitem" tabindex="-1" href="#">Two Hour</a></li>
-                <li role="presentation"><a role="menuitem" tabindex="-1" href="#">Four Hour</a></li>
-                <li role="presentation"><a role="menuitem" tabindex="-1" href="#">No Parking</a></li>
-                <li role="presentation"><a role="menuitem" tabindex="-1" href="#">Meter</a></li>
-            </ul>
+        <div id="menu" class="btn-group" role="group" aria-label="...">
+            <div class="btn-group" role="group">
+                <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">
+                    Parking Type <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1">
+                    <li role="presentation"><a href="#" data-category="Free">Free</a></li>
+                    <li role="presentation"><a href="#" data-category="TwoHour">Two Hour</a></li>
+                    <li role="presentation"><a href="#" data-category="FourHour">Four Hour</a></li>
+                    <li role="presentation"><a href="#" data-category="NoParking">No Parking</a></li>
+                    <li role="presentation"><a href="#" data-category="Meter">Meter</a></li>
+                </ul>
+            </div>
+
+            <button id="resetPaths" class="btn btn-default">Reset Paths</button>
         </div>
 
         <div class="alert alert-info alert-dismissible" role="alert">

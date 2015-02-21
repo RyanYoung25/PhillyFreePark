@@ -13,6 +13,7 @@ var directionsDisplay = new google.maps.DirectionsRenderer({
 
 var directionsService = new google.maps.DirectionsService();
 
+// Stores array of all paths to be drawn
 var parkingRoutes = [];
 
 
@@ -35,8 +36,7 @@ function drawStreet(startLatLng, endLatLng, category)
     var request = {
         origin:startLatLng,
         destination:endLatLng,
-        travelMode: google.maps.TravelMode.DRIVING,
-
+        travelMode: google.maps.TravelMode.DRIVING
     };
     
     var streetPath =[
@@ -75,12 +75,8 @@ function drawStreet(startLatLng, endLatLng, category)
 
     directionsService.route(request, function(response, status) {
         if (status == google.maps.DirectionsStatus.OK) {
-            //console.log(response.routes[0].legs[0].start_address);
-            //console.log(response.routes[0].legs[0].end_address);
-            console.log(response.routes.length);
-
-            var start = response.routes[0].legs[0].start_address
-            var end = response.routes[0].legs[0].end_address
+            var start = response.routes[0].legs[0].start_address;
+            var end = response.routes[0].legs[0].end_address;
 
             //Check to see if the points are on the same street
             var startArray = start.split(",");
@@ -127,16 +123,48 @@ google.maps.event.addListener(map, 'click', function(event){
 });
 
 
+/**
+ * Send a starting and ending point to server
+ * Receives all points in between the two points
+ * @param: startLatLng - The starting LatLng coordinates
+ *         endLatLng - The ending LatLng coordinates
+ *         category - The type of line to color the street
+ */
+function sendData(startLatLng, endLatLng, category){
+    $.post("http://phillyfreepark.com/api",{
+        start: startLatLng,
+        end: endLatLng,
+        category: category
+    }).success(function(responseData){
+        // DO stuf with the points
+    }).fail(function(jqXHR, textStatus, errorThrown){
+        alert("Error sending data: " + errorThrown);
+    });
+}
+
+
+/**
+ * Add a point on the map
+ * @param: location - The LatLng coordinates
+ */
+function addMarker(location) {
+    var marker = new google.maps.Marker({
+        position: myLatlng,
+        map: map,
+        title: 'Hello World!'
+    });
+}
+
+
+
+// Callback for selecting different parking types
+$(document).on('click', '.dropdown-menu li a', function () {
+    console.log("Selected Option: " + $(this).text());
+});
 
 
 // Test:
-function test(){
+/*function test(){
     drawStreet(new google.maps.LatLng(53.79370554255467, -2.991950511932373), new google.maps.LatLng(53.79369286762782, -2.988302707672119), "Meter");
 }
-$("#Test").click(test());
-// Add a marker to the map and push to the array.
-function addMarker(location) {
-    console.log(location);
-
-}
-
+$("#Test").click(test());*/

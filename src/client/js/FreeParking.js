@@ -5,19 +5,19 @@ var mapOptions = {
     center: new google.maps.LatLng(39.9500, -75.1667),
     disableDefaultUI: true
 };
-var map = new google.maps.Map($("#map")[0],mapOptions); 
+var map = new google.maps.Map($("#map")[0],mapOptions);
+
+// Initialize first eager loading bounds
+var eagerLoadingBounds = map.getBounds();
 
 var directionsService = new google.maps.DirectionsService();
-
-// Stores array of all paths to be drawn
-var parkingRoutes = [];
 
 // Save all markers (google.maps.Marker()) locally
 var markers = [];
 
 // Save all directions (google.maps.DirectionsRenderer()) locally
 // Saved in object for easy removal
-var directionsDisplays = {};
+var displayedDirections = {};
 
 var selectedParkingType = "Free";
 
@@ -28,13 +28,13 @@ $("body").load(function(){
 
 
 /**
- *From a start latLng and and end latLng Draw a poly lineHeight
+ * Draw a line on the map and save to displayedDirections if the start and end points are on the same street
+ * Drawn from a start latLng and and end latLng Draw a poly lineHeight
  * @param: startLatLng - The starting LatLng coordinates
  *         endLatLng - The ending LatLng coordinates
  *         category - The type of line to color the street
  */
-function drawStreet(startLatLng, endLatLng, category)
-{
+function drawStreet(startLatLng, endLatLng, category) {
     
     //From google-developers example code
     var request = {
@@ -42,11 +42,6 @@ function drawStreet(startLatLng, endLatLng, category)
         destination:endLatLng,
         travelMode: google.maps.TravelMode.DRIVING
     };
-    
-    var streetPath =[
-        startLatLng,
-        endLatLng
-    ];
 
     var color = '';
     //Switch for color
@@ -91,18 +86,17 @@ function drawStreet(startLatLng, endLatLng, category)
             var startStreetName = startArray[0].replace(regex, '');
             var endStreetName = endArray[0].replace(regex, ''); 
 
-            if(startStreetName == endStreetName)
-            {
+            if(startStreetName == endStreetName){
                 var directions = new google.maps.DirectionsRenderer({
                     suppressMarkers: true,
                     map: map
                 });
                 directions.setOptions({polylineOptions: streetLine});
                 directions.setDirections(response);
-                directionsDisplays[Object.keys(directionsDisplays).length] = directions;
+                directions.category = category; // add custom key
+                addStreet(directions);
             }
-            else
-            {
+            else{
                 console.log("Your streets aren't the same");
                 console.log(startStreetName);
                 console.log(endStreetName);
@@ -111,9 +105,30 @@ function drawStreet(startLatLng, endLatLng, category)
     });
 };
 
+// Erase the street from the map, but still save it locally
+function eraseStreet(streetID){
+    displayedDirections[streetID].setMap(null);
+};
 
+// Add street to displayedDirections
+function addStreet(directions){
+    // Replace the key with whatever ID it is later
+    displayedDirections[Object.keys(displayedDirections).length] = directions;
+};
+
+// Delete street from local storage AND erase it
 function removeStreet(streetID){
-    delete directionsDisplays[streetID];
+    eraseStreet(streetID);
+    delete displayedDirections[streetID];
+};
+
+// Removes all streets and markers from the map
+function clearAllStreets(){
+    for (var i in displayedDirections) {
+        displayedDirections[i].setMap(null);
+    }
+    displayedDirections = {};
+    clearAllMarkers();
 };
 
 
@@ -124,17 +139,36 @@ function removeStreet(streetID){
  *         endLatLng - The ending LatLng coordinates
  *         category - The type of line to color the street
  */
-function sendData(startLatLng, endLatLng, category){
+function postParking(startLatLng, endLatLng, category){
     $.post("http://phillyfreepark.com/api",{ // or whatever the actual URL is
         start: startLatLng,
         end: endLatLng,
         category: category
-    }).success(function(responseData){
-        // DO stuf with the points
+    }).success(function(parkingList){
+        adjustParking(parkingList);
     }).fail(function(jqXHR, textStatus, errorThrown){
         alert("Error sending data: " + errorThrown);
     });
 }
+
+/**
+ * Add directions in parking list to displayedDirections if not in it
+ * Remove direction from map if not in the viewport (but keep it in dispalyedDirections)
+ */
+function adjustParking(parkingList){
+    // For each parking in the returned list,
+    // if already not in map, display on map and add to object 
+    for (var i in parkingList){
+        var origin = new google.maps.LatLng(parkingList[i].StartLat, parkingList[i].StartLong);
+        var destination = new google.maps.LatLng(parkingList[i].StartLat, parkingList[i].StartLong);;
+        var category = parkingList[i].Category;
+
+        // all locations returned in parkingList are in the new bounds
+        if (!(parkingList.ID in displayedDirections)){
+            addStreet(parkingList.ID);
+        }
+    }
+};
 
 
 /**
@@ -150,20 +184,11 @@ function addMarker(location) {
 }
 
 // Removes the markers from the map
-function clearMarkers() {
+function clearAllMarkers() {
     for (var i = 0; i < markers.length; i++) {
         markers[i].setMap(null);
     }
     markers = [];
-}
-
-// Removes paths and markers from the map
-function clearPaths(){
-    for (var i in directionsDisplays) {
-        directionsDisplays[i].setMap(null);
-    }
-    directionsDisplays = {};
-    clearMarkers();
 }
 
 
@@ -182,7 +207,7 @@ $(document).on('click', '.dropdown-menu li a', function () {
 });
 
 
-$("#resetPaths").click(clearPaths);
+$("#resetPaths").click(clearAllStreets());
 $('.btn-group button').click(function(){
     $(this).parent().children().removeClass('active');
 });
@@ -198,13 +223,11 @@ google.maps.event.addListener(map, 'click', function(event){
         position: location
     });
 
-    if(click1 == null)
-    {
-        clearMarkers();
+    if(click1 == null){
+        clearAllMarkers();
         click1 = location;
     }
-    else 
-    {
+    else{
         drawStreet(click1, location, selectedParkingType);
         click1 = null;
     }
@@ -213,6 +236,37 @@ google.maps.event.addListener(map, 'click', function(event){
 });
 
 google.maps.event.addListener(map, 'bounds_changed', function(event){
+    var nextBounds = map.getBounds(); // LatLngBounds object
+    var center = map.getCenter(); // latLbng object
+
+    $.post("http://phillyfreepark.com/whatever-api-temprary-name",{ // or whatever the actual URL is
+        nextBounds: nextBounds
+    }).success(function(parkingList){
+        adjustParking(parkingList);
+
+        var streetsToRemove = []; // temporary array of streets to remove after iteration
+        for (var i in displayedDirections){
+            var directions = displayedDirections[i];
+            var routeLength = directions.routes.length
+            var start = directions.routes[0].legs[0].start_location;
+            var end = directions.routes[routeLength-1].legs[0].end_location;
+
+            if (nextBounds.contains(start) && nextBounds.contains(end)){
+                drawStreet(start, end, directions.category);
+            }
+            else {
+                streetsToRemove.push(i);
+            }
+        }
+
+        // remove the streets
+        for (var i in streetsToRemove){
+            removeStreet(streetsToRemove[i]);
+        }
+
+    }).fail(function(jqXHR, textStatus, errorThrown){
+        alert("Error sending data: " + errorThrown);
+    });
 
 });
 

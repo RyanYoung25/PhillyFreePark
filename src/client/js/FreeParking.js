@@ -39,9 +39,14 @@ $("body").load(function(){
 function drawStreet(startLatLng, endLatLng, category, streetID) {
     
     //From google-developers example code
-    var request = {
-        origin:startLatLng,
-        destination:endLatLng,
+    var request1 = {
+        origin: startLatLng,
+        destination: endLatLng,
+        travelMode: google.maps.TravelMode.DRIVING
+    };
+    var request2 = {
+        origin: endLatLng,
+        destination: startLatLng,
         travelMode: google.maps.TravelMode.DRIVING
     };
 
@@ -75,28 +80,50 @@ function drawStreet(startLatLng, endLatLng, category, streetID) {
         strokeWeight: 10
     });
 
-    directionsService.route(request, function(response, status) {
-        if (status == google.maps.DirectionsStatus.OK) {
-            if(checkStreet(startLatLng, endLatLng)){
-                var directions = new google.maps.DirectionsRenderer({
-                    suppressMarkers: true,
-                    map: map
-                });
-                directions.setOptions({polylineOptions: streetLine});
-                directions.setDirections(response);
-                directions.category = category; // add custom key
+    var dist1 = 0, dist2 = 0, response1, response2;
 
-                addStreet(streetID, {start: startLatLng, end: endLatLng});
-            }
-            else{
-                console.log("Your streets aren't the same");
-            }
+    directionsService.route(request1, function(response, status) {
+        if (status == google.maps.DirectionsStatus.OK) {
+
+            dist1 = response.routes[0].legs[0].distance.value; // first distance (in meters)
+            response1 = response;
+
+            directionsService.route(request2, function(response, status) {
+                if (status == google.maps.DirectionsStatus.OK) {
+
+                    dist2 = response.routes[0].legs[0].distance.value; // first distance (in meters)
+                    response2 = response;
+
+                    if(checkStreet(startLatLng, endLatLng)){
+                        var directions = new google.maps.DirectionsRenderer({
+                            suppressMarkers: true,
+                            map: map
+                        });
+                        directions.setOptions({polylineOptions: streetLine});
+                        //directions.setDirections(response);
+                        if (dist1 < dist2)
+                            directions.setDirections(response1);
+                        else
+                            directions.setDirections(response2);
+                        directions.category = category; // add custom key
+
+                        addStreet(streetID, {start: startLatLng, end: endLatLng});
+                    }
+                    else{
+                        console.log("Your streets aren't the same");
+                    }
+
+                }
+            });
         }
     });
 };
 
+
+// Using geocode HTTP to get street names
 function checkStreet(start, end){
     var street1 = null, street2 = null;
+    var regex = /^[NSEW]\s/g;
     $.ajax({
         url: "https://maps.googleapis.com/maps/api/geocode/json?key=" + myKey + "&latlng=" + start.lat() + "," + start.lng(),
         async: false,
@@ -104,7 +131,7 @@ function checkStreet(start, end){
         var address_components = geocodeResponse.results[0].address_components;
         for (var i in address_components){
             if (address_components[i].types[0] === "route"){
-                street1 = address_components[i].long_name;
+                street1 = address_components[i].short_name.replace(regex, '');
             }
         }
     });
@@ -115,7 +142,7 @@ function checkStreet(start, end){
         var address_components = geocodeResponse.results[0].address_components;
         for (var i in address_components){
             if (address_components[i].types[0] === "route"){
-                street2 = address_components[i].long_name;
+                street2 = address_components[i].short_name.replace(regex, '');
             }
         }
     });

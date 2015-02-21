@@ -1,8 +1,8 @@
 //Globals, gross, very gross
 
 var mapOptions = {
-    zoom: 13,
-    center: new google.maps.LatLng(53.7877, -2.9832)
+    zoom: 15,
+    center: new google.maps.LatLng(39.9500, -75.1667)
 };
 var map = new google.maps.Map($("#map")[0],mapOptions); 
 
@@ -11,14 +11,15 @@ var directionsDisplay = new google.maps.DirectionsRenderer({
     map: map
 });
 
-
 var directionsService = new google.maps.DirectionsService();
+
+var parkingRoutes = [];
+
 
 //Initialize 
 $("body").load(function(){
     GUnload();
 });
-
 
 
 /**
@@ -74,8 +75,9 @@ function drawStreet(startLatLng, endLatLng, category)
 
     directionsService.route(request, function(response, status) {
         if (status == google.maps.DirectionsStatus.OK) {
-            console.log(response.routes[0].legs[0].start_address);
-            console.log(response.routes[0].legs[0].end_address);
+            //console.log(response.routes[0].legs[0].start_address);
+            //console.log(response.routes[0].legs[0].end_address);
+            console.log(response.routes.length);
 
             var start = response.routes[0].legs[0].start_address
             var end = response.routes[0].legs[0].end_address
@@ -84,9 +86,9 @@ function drawStreet(startLatLng, endLatLng, category)
             var startArray = start.split(",");
             var endArray = end.split(",");
 
-            var regex = '/\d+{a-zA-Z}?(-\d+{a-zA-Z}?)?\s/g';
-            var startStreetName = startArray[0].replace(/\d+(-\d+)?\s/g, '');
-            var endStreetName = endArray[0].replace(/\d+(-\d+)?\s/g, '');
+            var regex = /\d+[a-zA-Z]?(-\d+[a-zA-Z]?)?\s/g;
+            var startStreetName = startArray[0].replace(regex, '');
+            var endStreetName = endArray[0].replace(regex, '');
 
             if(startStreetName == endStreetName)
             {
@@ -103,19 +105,6 @@ function drawStreet(startLatLng, endLatLng, category)
     });
 }
 
-
-//Click handler
-
-
-//Test:
-
-$("#Test").click(test());
-
-// Add a marker to the map and push to the array.
-function addMarker(location) {
-    console.log(location);
-
-}
 
 var click1 = null;
 
@@ -137,7 +126,17 @@ google.maps.event.addListener(map, 'click', function(event){
     }
 });
 
+
+
+
+// Test:
 function test(){
     drawStreet(new google.maps.LatLng(53.79370554255467, -2.991950511932373), new google.maps.LatLng(53.79369286762782, -2.988302707672119), "Meter");
+}
+$("#Test").click(test());
+// Add a marker to the map and push to the array.
+function addMarker(location) {
+    console.log(location);
+
 }
 

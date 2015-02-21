@@ -1,5 +1,7 @@
 //Globals, gross, very gross
 
+var myKey = "AIzaSyDEHivbXD5bQ76f0FqDM-keqo0K2XhRXbw";
+
 var mapOptions = {
     zoom: 15,
     center: new google.maps.LatLng(39.9500, -75.1667), // default is Philly
@@ -75,18 +77,7 @@ function drawStreet(startLatLng, endLatLng, category, streetID) {
 
     directionsService.route(request, function(response, status) {
         if (status == google.maps.DirectionsStatus.OK) {
-            var start = response.routes[0].legs[0].start_address;
-            var end = response.routes[0].legs[0].end_address;
-
-            //Check to see if the points are on the same street
-            var startArray = start.split(",");
-            var endArray = end.split(",");
-
-            var regex = /\d+[a-zA-Z]?(-\d+[a-zA-Z]?)?\s/g;
-            var startStreetName = startArray[0].replace(regex, '');
-            var endStreetName = endArray[0].replace(regex, ''); 
-
-            if(startStreetName == endStreetName){
+            if(checkStreet(startLatLng, endLatLng)){
                 var directions = new google.maps.DirectionsRenderer({
                     suppressMarkers: true,
                     map: map
@@ -95,17 +86,43 @@ function drawStreet(startLatLng, endLatLng, category, streetID) {
                 directions.setDirections(response);
                 directions.category = category; // add custom key
 
-                addStreet(streetID, {start: start, end: end});
+                addStreet(streetID, {start: startLatLng, end: endLatLng});
             }
             else{
                 console.log("Your streets aren't the same");
-                console.log(start);
-                console.log(end);
             }
         }
     });
 };
 
+function checkStreet(start, end){
+    var street1 = null, street2 = null;
+    $.ajax({
+        url: "https://maps.googleapis.com/maps/api/geocode/json?key=" + myKey + "&latlng=" + start.lat() + "," + start.lng(),
+        async: false,
+    }).success(function(geocodeResponse){
+        var address_components = geocodeResponse.results[0].address_components;
+        for (var i in address_components){
+            if (address_components[i].types[0] === "route"){
+                street1 = address_components[i].long_name;
+            }
+        }
+    });
+    $.ajax({
+        url: "https://maps.googleapis.com/maps/api/geocode/json?key=" + myKey + "&latlng=" + end.lat() + "," + end.lng(),
+        async: false,
+    }).success(function(geocodeResponse){
+        var address_components = geocodeResponse.results[0].address_components;
+        for (var i in address_components){
+            if (address_components[i].types[0] === "route"){
+                street2 = address_components[i].long_name;
+            }
+        }
+    });
+    console.log("Start: " + street1);
+    console.log("End: " + street2);
+    return street1 === street2 && street1 !== null;
+}
 
 // Erase the street from the map, but still save it locally
 function eraseStreet(streetID){
@@ -186,6 +203,8 @@ function addMarker(location) {
         position: location,
         map: map
     });
+    console.log("lat: " + location.lat());
+    console.log("lng: " + location.lng());
     markers.push(marker);
 }
 
@@ -281,4 +300,5 @@ var postBoundsURL = baseURL + "/postBounds.php"
     });
 
 });*/
+
 

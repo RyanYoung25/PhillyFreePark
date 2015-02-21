@@ -7,6 +7,11 @@ from django.http import HttpRequest
 from django.template import RequestContext
 from datetime import datetime
 
+#Ryan's imports
+from rest_framework import viewsets
+from app.models import Parking
+from app.serializers import ParkingSerializer
+
 def home(request):
     """Renders the home page."""
     assert isinstance(request, HttpRequest)
@@ -47,3 +52,11 @@ def about(request):
             'year':datetime.now().year,
         })
     )
+
+
+class ParkingViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+    queryset = Parking.objects.all()
+    serializer_class = ParkingSerializer

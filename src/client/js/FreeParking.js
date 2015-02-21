@@ -2,7 +2,7 @@
 
 var mapOptions = {
     zoom: 15,
-    center: new google.maps.LatLng(39.9500, -75.1667),
+    center: new google.maps.LatLng(39.9500, -75.1667), // default is Philly
     disableDefaultUI: true
 };
 var map = new google.maps.Map($("#map")[0],mapOptions);
@@ -34,7 +34,7 @@ $("body").load(function(){
  *         endLatLng - The ending LatLng coordinates
  *         category - The type of line to color the street
  */
-function drawStreet(startLatLng, endLatLng, category) {
+function drawStreet(startLatLng, endLatLng, category, streetID) {
     
     //From google-developers example code
     var request = {
@@ -47,19 +47,19 @@ function drawStreet(startLatLng, endLatLng, category) {
     //Switch for color
     switch(category){
         case "Free":
-            color = "#550022"
+            color = "red";
             break;
         case "TwoHour":
-            color = "#009900"
+            color = "orange";
             break;
         case "FourHour":
-            color = "#000022"
+            color = "blue";
             break;
         case "NoParking":
-            color = "#502122"
+            color = "purple";
             break;
         case "Meter":
-            color = "#AAF051"
+            color = "green";
             break;
         default:
             console.log('Category: ' + category + " does not exist");
@@ -94,16 +94,18 @@ function drawStreet(startLatLng, endLatLng, category) {
                 directions.setOptions({polylineOptions: streetLine});
                 directions.setDirections(response);
                 directions.category = category; // add custom key
-                addStreet(directions);
+
+                addStreet(streetID, {start: start, end: end});
             }
             else{
                 console.log("Your streets aren't the same");
-                console.log(startStreetName);
-                console.log(endStreetName);
+                console.log(start);
+                console.log(end);
             }
         }
     });
 };
+
 
 // Erase the street from the map, but still save it locally
 function eraseStreet(streetID){
@@ -111,9 +113,8 @@ function eraseStreet(streetID){
 };
 
 // Add street to displayedDirections
-function addStreet(directions){
-    // Replace the key with whatever ID it is later
-    displayedDirections[Object.keys(displayedDirections).length] = directions;
+function addStreet(ID, startEnd){
+    displayedDirections[ID] = startEnd;
 };
 
 // Delete street from local storage AND erase it
@@ -132,6 +133,8 @@ function clearAllStreets(){
 };
 
 
+var baseURL = "http://localhost:8000";
+var postParkingURL = baseURL + "/postPath.php";
 /**
  * Send a starting and ending point to server
  * Receives all points in between the two points
@@ -140,14 +143,16 @@ function clearAllStreets(){
  *         category - The type of line to color the street
  */
 function postParking(startLatLng, endLatLng, category){
-    $.post("http://phillyfreepark.com/api",{ // or whatever the actual URL is
-        start: startLatLng,
-        end: endLatLng,
-        category: category
-    }).success(function(parkingList){
-        adjustParking(parkingList);
+    $.post(postParkingURL, { // or whatever the actual URL is
+        StartLat: startLatLng.lat(),
+        StartLong: startLatLng.lng(),
+        EndLat: endLatLng.lat(),
+        EndLong: endLatLng.lng(),
+        Category: category
+    }).success(function(parkingObject){
+        drawStreet(startLatLng, endLatLng, category, parkingObject.ID);
     }).fail(function(jqXHR, textStatus, errorThrown){
-        alert("Error sending data: " + errorThrown);
+        console.log("Error sending data: " + errorThrown);
     });
 }
 
@@ -162,11 +167,12 @@ function adjustParking(parkingList){
         var origin = new google.maps.LatLng(parkingList[i].StartLat, parkingList[i].StartLong);
         var destination = new google.maps.LatLng(parkingList[i].StartLat, parkingList[i].StartLong);;
         var category = parkingList[i].Category;
+        var ID = parkingList[i].ID;
 
         // all locations returned in parkingList are in the new bounds
-        if (!(parkingList.ID in displayedDirections)){
-            addStreet(parkingList.ID);
-        }
+        /*if (!(ID in displayedDirections)){
+            addStreet(parkingList.ID, {start: origin, });
+        }*/
     }
 };
 
@@ -228,20 +234,27 @@ google.maps.event.addListener(map, 'click', function(event){
         click1 = location;
     }
     else{
-        drawStreet(click1, location, selectedParkingType);
+        postParking(click1, location, selectedParkingType);
         click1 = null;
     }
 
     addMarker(location);
 });
 
-google.maps.event.addListener(map, 'bounds_changed', function(event){
+
+var postBoundsURL = baseURL + "/postBounds.php"
+/*google.maps.event.addListener(map, 'bounds_changed', function(event){
     var nextBounds = map.getBounds(); // LatLngBounds object
+    var NEPoint = nextBounds.getNorthEast();
+    var SWPoint = nextBounds.getSouthWest();
     var center = map.getCenter(); // latLbng object
 
-    $.post("http://phillyfreepark.com/whatever-api-temprary-name",{ // or whatever the actual URL is
-        nextBounds: nextBounds
-    }).success(function(parkingList){
+    $.post(postBoundsURL,{ // or whatever the actual URL is
+        NELat: NEPoint.lat(),
+        NELon: NEPoint.lng(),
+        SWLat: SWPoint.lat(),
+        SWLon: SWPoint.lng() 
+    }).done(function(parkingList){
         adjustParking(parkingList);
 
         var streetsToRemove = []; // temporary array of streets to remove after iteration
@@ -263,10 +276,9 @@ google.maps.event.addListener(map, 'bounds_changed', function(event){
         for (var i in streetsToRemove){
             removeStreet(streetsToRemove[i]);
         }
-
     }).fail(function(jqXHR, textStatus, errorThrown){
-        alert("Error sending data: " + errorThrown);
+        console.log("Error sending data: " + errorThrown);
     });
 
-});
+});*/
 

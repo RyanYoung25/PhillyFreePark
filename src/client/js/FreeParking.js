@@ -3,7 +3,7 @@
 var myKey = "AIzaSyDEHivbXD5bQ76f0FqDM-keqo0K2XhRXbw";
 var googlePlusClientID = "76329476181-7e60ohdu928f5m9hqo5pt5k9akeoncau.apps.googleusercontent.com";
 var googlePlusSecret = "b8evh1RcJzdxb0YbWEfdcw7s";
-var baseURL = "http://phillyfreeparking.com/";
+var baseURL = "http://phillyfreeparking.com/api/";
 //var baseURL = "http://localhost:8000/";
 
 var styles = [
@@ -254,7 +254,9 @@ function adjustParking(parkingList){
     // if already not in map, display on map and add to object 
     for (var i in parkingList){
         var parkingObject = parkingList[i];
-        var waypoints = JSON.parse(parkingObject.Waypoints);
+        var waypoints = null;
+        if (parkingObject.Waypoints !== null)
+            waypoints = JSON.parse(parkingObject.Waypoints);
         var origin = new google.maps.LatLng(parkingList[i].StartLat, parkingList[i].StartLng);
         var destination = new google.maps.LatLng(parkingList[i].EndLat, parkingList[i].EndLng);
         var category = parkingList[i].Category;
@@ -262,17 +264,25 @@ function adjustParking(parkingList){
 
         if (!(ID in displayedDirections)){
             // Draw it
-            var polyline = new google.maps.Polyline({
-                path: waypoints,
-                geodesic: true,
-                strokeColor: CATEGORY[category],
-                strokeOpacity: 1,
-                strokeWeight: 10,
-                map: map
-            });
-            addListener(polyline);
+            if (waypoints !== null){
+                var polyline = new google.maps.Polyline({
+                    path: waypoints,
+                    geodesic: true,
+                    strokeColor: CATEGORY[category],
+                    strokeOpacity: 1,
+                    strokeWeight: 10,
+                    map: map
+                });
+                addListener(polyline);
 
-            addStreet(parkingObject, polyline, origin, destination, waypoints, category);
+                addStreet(parkingObject, polyline, origin, destination, waypoints, category);
+            }
+            else {
+                var marker = new google.maps.Marker({
+                    map: map,
+                    position: origin
+                });
+            }
         }
     }
 }
@@ -296,7 +306,15 @@ function addListener(polyline){
                 $(this).text("Verify");
             else
                 $(this).text("Verified!");
-        })
+        });
+        $(".remove").click(function(){
+            $.get(baseURL + "?call=deleteparking&ID=" + id).done(function(){
+                removeStreet(id);
+                infowindow.close();
+            }).fail(function(jqXHR, textStatus, errorThrown){
+                console.log("Error deleting data: " + errorThrown);
+            });
+        });
     });
 }
 

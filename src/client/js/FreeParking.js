@@ -3,7 +3,7 @@
 var myKey = "AIzaSyDEHivbXD5bQ76f0FqDM-keqo0K2XhRXbw";
 
 var mapOptions = {
-    zoom: 15,
+    zoom: 17,
     center: new google.maps.LatLng(39.9500, -75.1667), // default is Philly
     disableDefaultUI: true
 };
@@ -17,9 +17,21 @@ var directionsService = new google.maps.DirectionsService();
 // Save all markers (google.maps.Marker()) locally
 var markers = [];
 
-// Save all directions (google.maps.DirectionsRenderer()) locally
+// Save all directions locally
 // Saved in object for easy removal
 var displayedDirections = {};
+/*
+displayedDirections: 
+{
+    ID: {
+        directions: directions (google.maps.DirectionsRenderer()),
+        start: startLatLng,
+        end: endLatLng,
+        waypoints: [array of {lat: lat, lng: lng}],
+        category: totally-a-category
+    }
+}
+*/
 
 var selectedParkingType = "Free";
 
@@ -32,13 +44,14 @@ $("body").load(function(){
 /**
  * Draw a line on the map and save to displayedDirections if the start and end points are on the same street
  * Drawn from a start latLng and and end latLng Draw a poly lineHeight
+ *
+ * CALL THIS ONLY IF THE STREETID IS NOT ON THE DATABASE!!!!!!
+ *
  * @param: startLatLng - The starting LatLng coordinates
  *         endLatLng - The ending LatLng coordinates
  *         category - The type of line to color the street
  */
-function drawStreet(startLatLng, endLatLng, category, streetID) {
-    
-    //From google-developers example code
+function drawStreet(startLatLng, endLatLng, category, streetID) {    
     var request1 = {
         origin: startLatLng,
         destination: endLatLng,
@@ -73,16 +86,11 @@ function drawStreet(startLatLng, endLatLng, category, streetID) {
             color = "transparent";
             break;
     }
-    //Make the line path
-    var streetLine = new google.maps.Polyline({
-        strokeColor: color,
-        strokeOpacity: 1.0,
-        strokeWeight: 10
-    });
 
     var dist1 = 0, dist2 = 0, response1, response2;
 
     directionsService.route(request1, function(response, status) {
+        console.log(status);
         if (status == google.maps.DirectionsStatus.OK) {
 
             dist1 = response.routes[0].legs[0].distance.value; // first distance (in meters)
@@ -95,19 +103,46 @@ function drawStreet(startLatLng, endLatLng, category, streetID) {
                     response2 = response;
 
                     if(checkStreet(startLatLng, endLatLng)){
-                        var directions = new google.maps.DirectionsRenderer({
-                            suppressMarkers: true,
-                            map: map
-                        });
-                        directions.setOptions({polylineOptions: streetLine});
-                        //directions.setDirections(response);
-                        if (dist1 < dist2)
-                            directions.setDirections(response1);
-                        else
-                            directions.setDirections(response2);
-                        directions.category = category; // add custom key
+                        var actualResponse;
+                        var actualStart;
+                        var actualEnd;
+                        if (dist1 < dist2){
+                            actualResponse = response1;
+                            actualStart = startLatLng;
+                            actualEnd = endLatLng;
+                        }
+                        else{
+                            actualResponse = response2;
+                            actualStart = endLatLng;
+                            actualEnd = startLatLng;
+                        }
 
-                        addStreet(streetID, {start: startLatLng, end: endLatLng});
+
+                        var waypoints = actualResponse.routes[0].overview_path;
+                        var polyline = new google.maps.Polyline({
+                            path: waypoints,
+                            geodesic: true,
+                            strokeColor: color,
+                            strokeOpacity: 1,
+                            strokeWeight: 10
+                        });
+                        polyline.setMap(map);
+                        /*
+                        [{
+                            lat: lat,
+                            lon: lon.
+                        },{
+                            lat: lat,
+                            lon: lon.
+                        }]
+                        */
+
+                        //console.log(JSON.parse(JSON.stringify(actualResponse)));
+                        //directions.setDirections(JSON.parse(JSON.stringify(actualResponse)));
+                        //directions.setDirections(actualResponse);
+                        //console.log(JSON.stringify(actualResponse));
+                        addStreet(streetID, polyline, actualStart, actualEnd);
+
                     }
                     else{
                         console.log("Your streets aren't the same");
@@ -153,12 +188,17 @@ function checkStreet(start, end){
 
 // Erase the street from the map, but still save it locally
 function eraseStreet(streetID){
-    displayedDirections[streetID].setMap(null);
+    displayedDirections[streetID].directions.setMap(null);
 };
 
 // Add street to displayedDirections
-function addStreet(ID, startEnd){
-    displayedDirections[ID] = startEnd;
+function addStreet(ID, directions, start, end, marker){
+    displayedDirections[ID] = {
+        directions: directions,
+        start: start,
+        end: end,
+        marker: marker
+    };
 };
 
 // Delete street from local storage AND erase it
@@ -169,11 +209,10 @@ function removeStreet(streetID){
 
 // Removes all streets and markers from the map
 function clearAllStreets(){
-    for (var i in displayedDirections) {
-        displayedDirections[i].setMap(null);
+    for (var id in displayedDirections) {
+        eraseStreet(id);
     }
     displayedDirections = {};
-    clearAllMarkers();
 };
 
 
@@ -194,31 +233,12 @@ function postParking(startLatLng, endLatLng, category){
         EndLong: endLatLng.lng(),
         Category: category
     }).success(function(parkingObject){
+        parkingObject = JSON.parse(parkingObject);
         drawStreet(startLatLng, endLatLng, category, parkingObject.ID);
     }).fail(function(jqXHR, textStatus, errorThrown){
         console.log("Error sending data: " + errorThrown);
     });
 }
-
-/**
- * Add directions in parking list to displayedDirections if not in it
- * Remove direction from map if not in the viewport (but keep it in dispalyedDirections)
- */
-function adjustParking(parkingList){
-    // For each parking in the returned list,
-    // if already not in map, display on map and add to object 
-    for (var i in parkingList){
-        var origin = new google.maps.LatLng(parkingList[i].StartLat, parkingList[i].StartLong);
-        var destination = new google.maps.LatLng(parkingList[i].StartLat, parkingList[i].StartLong);;
-        var category = parkingList[i].Category;
-        var ID = parkingList[i].ID;
-
-        // all locations returned in parkingList are in the new bounds
-        /*if (!(ID in displayedDirections)){
-            addStreet(parkingList.ID, {start: origin, });
-        }*/
-    }
-};
 
 
 /**
@@ -268,6 +288,8 @@ $('.btn-group button').click(function(){
 // The event listeners for the Map
 
 var click1 = null;
+var startMarker = new google.maps.Marker();
+var endMarker = new google.maps.Marker();
 google.maps.event.addListener(map, 'click', function(event){
     var location = event.latLng;
 
@@ -276,45 +298,100 @@ google.maps.event.addListener(map, 'click', function(event){
     });
 
     if(click1 == null){
-        clearAllMarkers();
+        startMarker.setMap(map);
+        startMarker.setPosition(location);
+        endMarker.setMap(null);
+
         click1 = location;
     }
     else{
         postParking(click1, location, selectedParkingType);
+        endMarker.setMap(map);
+        endMarker.setPosition(location);
         click1 = null;
     }
 
-    addMarker(location);
 });
 
 
+/**
+ * Add directions in parking list to displayedDirections if not in it
+ * Remove direction from map if not in the viewport (but keep it in displayedDirections)
+ */
+function adjustParking(parkingList){
+    var bounds = map.getBounds();
+
+    // For each parking in the returned list,
+    // if already not in map, display on map and add to object 
+    for (var i in parkingList){
+        var origin = new google.maps.LatLng(parkingList[i].StartLat, parkingList[i].StartLong);
+        var destination = new google.maps.LatLng(parkingList[i].EndLat, parkingList[i].EndLong);;
+        var category = parkingList[i].Category;
+        var ID = parkingList[i].ID;
+
+        // all locations returned in parkingList are in the new bounds
+        if (!(ID in displayedDirections)){
+            drawStreet(origin, destination, category, ID);
+        }
+    }
+};
+
+
 var postBoundsURL = baseURL + "/postBounds.php"
-/*google.maps.event.addListener(map, 'bounds_changed', function(event){
+google.maps.event.addListener(map, 'bounds_changed', function(event){
     var nextBounds = map.getBounds(); // LatLngBounds object
     var NEPoint = nextBounds.getNorthEast();
     var SWPoint = nextBounds.getSouthWest();
-    var center = map.getCenter(); // latLbng object
+    var zoom = map.getZoom();
 
-    $.post(postBoundsURL,{ // or whatever the actual URL is
+    console.log(zoom);
+
+    /*$.post(postBoundsURL,{ // or whatever the actual URL is
         NELat: NEPoint.lat(),
-        NELon: NEPoint.lng(),
+        NELng: NEPoint.lng(),
         SWLat: SWPoint.lat(),
-        SWLon: SWPoint.lng() 
-    }).done(function(parkingList){
+        SWLng: SWPoint.lng() 
+    }).success(function(parkingList){
+        parkingList = JSON.parse(parkingList);
+
+        // adds those in the parking list and not in the displayedDirections into the displayedDirections
         adjustParking(parkingList);
 
-        var streetsToRemove = []; // temporary array of streets to remove after iteration
-        for (var i in displayedDirections){
-            var directions = displayedDirections[i];
-            var routeLength = directions.routes.length
-            var start = directions.routes[0].legs[0].start_location;
-            var end = directions.routes[routeLength-1].legs[0].end_location;
+        if (zoom > zoomLimit){
+            for (var id in displayedDirections){
+                var start = displayedDirections[id].start;
+                var end = displayedDirections[id].end;
+                var dirMap = displayedDirections[id].directions.getMap();
 
-            if (nextBounds.contains(start) && nextBounds.contains(end)){
-                drawStreet(start, end, directions.category);
+                if (nextBounds.contains(start) && nextBounds.contains(end) && dirMap === null) {
+                    displayedDirections[id].directions.setMap(map);
+                }
+
+                displayedDirections[id].marker.setMap(null);
             }
-            else {
-                streetsToRemove.push(i);
+        }
+        else {
+            // Erase all streets
+            for (var id in displayedDirections){
+                var start = displayedDirections[id].start;
+                var end = displayedDirections[id].end;
+                var markerMap = displayedDirections[id].marker.getMap();
+
+                if (nextBounds.contains(start) && nextBounds.contains(end) && markerMap === null){
+                    displayedDirections[id].marker.setMap(map);
+                }
+
+                displayedDirections[id].directions.setMap(null);
+            }
+        }
+
+        var streetsToRemove = []; // temporary array of streets to remove after iteration
+        for (var id in displayedDirections){
+            var start = displayedDirections[id].start;
+            var end = displayedDirections[id].end;
+
+            if (!(nextBounds.contains(start) && nextBounds.contains(end))) {
+                streetsToRemove.push(id);
             }
         }
 
@@ -326,6 +403,35 @@ var postBoundsURL = baseURL + "/postBounds.php"
         console.log("Error sending data: " + errorThrown);
     });
 
-});*/
+    
+    if (zoom > zoomLimit){
+        for (var id in displayedDirections){
+            var start = displayedDirections[id].start;
+            var end = displayedDirections[id].end;
+            var dirMap = displayedDirections[id].directions.getMap();
+
+            if (nextBounds.contains(start) && nextBounds.contains(end) && dirMap === null) {
+                displayedDirections[id].directions.setMap(map);
+            }
+
+            displayedDirections[id].marker.setMap(null);
+        }
+    }
+    else {
+        // Erase all streets
+        for (var id in displayedDirections){
+            var start = displayedDirections[id].start;
+            var end = displayedDirections[id].end;
+            var markerMap = displayedDirections[id].marker.getMap();
+
+            if (nextBounds.contains(start) && nextBounds.contains(end) && markerMap === null){
+                displayedDirections[id].marker.setMap(map);
+            }
+
+            displayedDirections[id].directions.setMap(null);
+        }
+    }*/
+    
+});
 
 

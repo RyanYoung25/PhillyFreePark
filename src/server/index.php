@@ -69,15 +69,15 @@ function findparking($LL_Lng,$LL_Lat,$UR_Lng,$UR_Lat){
     }
     else {
         // Build the query
-        $query = "SELECT * FROM `parking` WHERE
+        $query = "SELECT * FROM parking WHERE
                   (
-                  $LL_Lng <= 'StartLng' AND 'StartLng' <= $UR_Lng
-                    AND $LL_Lat <= 'StartLat' AND 'StartLat' <= $UR_Lat
+                  $LL_Lng <= StartLng AND StartLng <= $UR_Lng
+                    AND $LL_Lat <= StartLat AND StartLat <= $UR_Lat
                     )
                   OR
                   (
-                  $LL_Lng <= 'EndLng' AND 'EndLng' <= $UR_Lng
-                    AND $LL_Lat <= 'EndLat' AND 'EndLat' <= $UR_Lat
+                  $LL_Lng <= EndLng AND EndLng <= $UR_Lng
+                    AND $LL_Lat <= EndLat AND EndLat <= $UR_Lat
                   )
                   ";
         // Query the DB
@@ -120,15 +120,15 @@ function eagerload($LL_Lng,$LL_Lat,$UR_Lng,$UR_Lat){
     }
     else {
         // Build the query
-        $query = "SELECT * FROM `parking` WHERE
+        $query = "SELECT * FROM parking WHERE
                   (
-                  $LL_Lng <= 'StartLng' AND 'StartLng' <= $UR_Lng
-                    AND $LL_Lat <= 'StartLat' AND 'StartLat' <= $UR_Lat
+                  $LL_Lng <= StartLng AND StartLng <= $UR_Lng
+                    AND $LL_Lat <= StartLat AND StartLat <= $UR_Lat
                     )
                   OR
                   (
-                  $LL_Lng <= 'EndLng' AND 'EndLng' <= $UR_Lng
-                    AND $LL_Lat <= 'EndLat' AND 'EndLat' <= $UR_Lat
+                  $LL_Lng <= EndLng AND EndLng <= $UR_Lng
+                    AND $LL_Lat <= EndLat AND EndLat <= $UR_Lat
                   )
                   ";
         // Query the DB
@@ -151,6 +151,10 @@ function eagerload($LL_Lng,$LL_Lat,$UR_Lng,$UR_Lat){
 
 function addparking($StartLng,$StartLat,$EndLng,$EndLat,$Category,$Price,
                     $Duration,$Waypoints) {
+
+    // set the timezone reference since not setup in php.ini
+    date_default_timezone_set("America/New_York");
+
     global $siteContentDB;
     $ID = null;
 
@@ -163,18 +167,16 @@ function addparking($StartLng,$StartLat,$EndLng,$EndLat,$Category,$Price,
     }
     else {
         // Build the query
-        $query = "INSERT INTO `parking`
-                  (`StartLat`, `StartLng`, `EndLat`, `EndLng`, `Category`, `Price`, `Verified`, `DateAdded`, `Duration`, `Waypoints`)
+        $query = "INSERT INTO parking
+                  (StartLat, StartLng, EndLat, EndLng, Category, Price, Verified, DateAdded, Duration, Waypoints)
                   VALUES ($StartLat,$StartLng,$EndLat,$EndLng,
                   '$Category',$Price,$Verified,'$DateAdded',
                   $Duration,'$Waypoints')
                   ";
-        //echo($query);
 
         // Query the DB
         if ($result = $siteContentDB->query($query)) {
             // Iterate through the results
-            //echo($result);
             if ($result === TRUE) {
                 //Set the ID to return
                 $ID = $siteContentDB->insert_id;

@@ -254,7 +254,9 @@ function adjustParking(parkingList){
     // if already not in map, display on map and add to object 
     for (var i in parkingList){
         var parkingObject = parkingList[i];
-        var waypoints = JSON.parse(parkingObject.Waypoints);
+        var waypoints = null;
+        if (parkingObject.Waypoints !== null)
+            waypoints = JSON.parse(parkingObject.Waypoints);
         var origin = new google.maps.LatLng(parkingList[i].StartLat, parkingList[i].StartLng);
         var destination = new google.maps.LatLng(parkingList[i].EndLat, parkingList[i].EndLng);
         var category = parkingList[i].Category;
@@ -262,17 +264,25 @@ function adjustParking(parkingList){
 
         if (!(ID in displayedDirections)){
             // Draw it
-            var polyline = new google.maps.Polyline({
-                path: waypoints,
-                geodesic: true,
-                strokeColor: CATEGORY[category],
-                strokeOpacity: 1,
-                strokeWeight: 10,
-                map: map
-            });
-            addListener(polyline);
+            if (waypoints !== null){
+                var polyline = new google.maps.Polyline({
+                    path: waypoints,
+                    geodesic: true,
+                    strokeColor: CATEGORY[category],
+                    strokeOpacity: 1,
+                    strokeWeight: 10,
+                    map: map
+                });
+                addListener(polyline);
 
-            addStreet(parkingObject, polyline, origin, destination, waypoints, category);
+                addStreet(parkingObject, polyline, origin, destination, waypoints, category);
+            }
+            else {
+                var marker = new google.maps.Marker({
+                    map: map,
+                    position: origin
+                });
+            }
         }
     }
 }

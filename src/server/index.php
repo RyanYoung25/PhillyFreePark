@@ -7,7 +7,8 @@ $calls = array(
     "findparking" => array("LL_Lng","LL_Lat","UR_Lng","UR_Lat"),
     "eagerload" => array("LL_Lng","LL_Lat","UR_Lng","UR_Lat"),
     "addparking" => array("StartLng","StartLat","EndLng","EndLat",
-        "Category","Price","Duration","Waypoints")
+        "Category","Price","Duration","Waypoints"),
+    "deleteparking" => array("ID")
 
 );
 
@@ -19,7 +20,7 @@ $call = $_REQUEST['call'];
 
 // Make sure we have a function call provided
 if($call == null || $calls[$call] == null){
-    exit("No call provided");
+    exit("No call or invalid call provided");
 }
 
 // Make sure we have all the necessary params
@@ -46,6 +47,9 @@ else if($call == "addparking") {
     addparking($_REQUEST["StartLng"],$_REQUEST["StartLat"],$_REQUEST["EndLng"],
         $_REQUEST["EndLat"], $_REQUEST["Category"],$_REQUEST["Price"],
         $_REQUEST["Duration"],$_REQUEST["Waypoints"]);
+}
+else if($call == "deleteparking") {
+    deleteparking($_REQUEST["ID"]);
 }
 
 
@@ -190,6 +194,45 @@ function addparking($StartLng,$StartLat,$EndLng,$EndLat,$Category,$Price,
         header('Access-Control-Allow-Origin: *');
         header('Content-Type: application/json');
         echo(json_encode($ID));
+
+    }
+}
+
+
+
+function deleteparking($ID) {
+
+    // set the timezone reference since not setup in php.ini
+    date_default_timezone_set("America/New_York");
+
+    global $siteContentDB;
+    $success = null;
+
+    if(mysqli_connect_errno($siteContentDB)) {
+        echo ("Failed to connect to MySQL DB: " . mysqli_connect_error());
+    }
+    else {
+        // Build the query
+        $query = "DELETE FROM parking
+                  WHERE ID=$ID";
+
+        // Query the DB
+        if ($result = $siteContentDB->query($query)) {
+            // Iterate through the results
+            if ($result === TRUE) {
+                //Set the ID to return
+                $success = "Success";
+            }
+            else {
+                $success = "Failed";
+            }
+        }
+
+        //echo($ID);
+        $siteContentDB->close();
+        header('Access-Control-Allow-Origin: *');
+        header('Content-Type: application/json');
+        echo(json_encode($success));
 
     }
 }

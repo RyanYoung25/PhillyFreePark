@@ -1,6 +1,8 @@
 //Globals, gross, very gross
 
 var myKey = "AIzaSyDEHivbXD5bQ76f0FqDM-keqo0K2XhRXbw";
+var googlePlusClientID = "76329476181-7e60ohdu928f5m9hqo5pt5k9akeoncau.apps.googleusercontent.com";
+var googlePlusSecret = "b8evh1RcJzdxb0YbWEfdcw7s";
 //var baseURL = "http://phillyfreeparking.com/";
 var baseURL = "http://localhost:8000/";
 
@@ -22,6 +24,11 @@ var map = new google.maps.Map($("#map")[0],mapOptions);
 
 var directionsService = new google.maps.DirectionsService();
 
+// Handlebars stuff
+var templateSource = $("#entry-template").html();
+var template = Handlebars.compile(templateSource);
+
+var infowindow = new google.maps.InfoWindow();
 
 // Save all directions locally
 // Saved in object for easy removal
@@ -30,11 +37,14 @@ var displayedDirections = {};
 displayedDirections: 
 {
     ID: {
-        polyline: polyline (google.maps.Polyline()),
+        polyline: polyline (google.maps.Polyline(), will also contain custom field 'streetID'),
         start: startLatLng,
         end: endLatLng,
         waypoints: [array of {lat: lat, lng: lng}],
-        category: totally-a-category
+        category: totally-a-category,
+        verification: number,
+        price: number,
+        duration: number
     }
 }
 */
@@ -125,12 +135,13 @@ function drawStreet(startLatLng, endLatLng, category) {
                             geodesic: true,
                             strokeColor: color,
                             strokeOpacity: 1,
-                            strokeWeight: 10
+                            strokeWeight: 10,
+                            map: map
                         });
-                        polyline.setMap(map);
+                        addListener(polyline);
 
                         postParking(actualStart, actualEnd, category, literalWaypoints, function(parkingObject){
-                            addStreet(parkingObject.ID, polyline, actualStart, actualEnd, literalWaypoints, category);
+                            addStreet(parkingObject, polyline, actualStart, actualEnd, literalWaypoints, category);
                         });
                     }
                     else{
@@ -190,13 +201,18 @@ function eraseStreet(streetID){
 };
 
 // Add street to displayedDirections
-function addStreet(ID, polyline, start, end, waypoints, category){
+function addStreet(parkingObject, polyline, start, end, waypoints, category){
+    var ID = parkingObject.ID;
+    polyline.streetID = ID;
     displayedDirections[ID] = {
         polyline: polyline,
         start: start,
         end: end,
         waypoints: waypoints,
-        category: category
+        category: category,
+        verification: parkingObject.Verified,
+        price: parkingObject.Price,
+        duration: parkingObject.Duration
     };
 };
 
@@ -228,46 +244,6 @@ function postParking(startLatLng, endLatLng, category, waypoints, callback){
 }
 
 
-/**
- * Callback for selecting different parking types
- */
-$(document).on('click', '.dropdown-menu li a', function () {
-    // Display and hide the alert when selecing new parking option
-    $(".parkingType").text($(this).text());
-    selectedParkingType = $(this).data("category");
-    $(".newParking").show("slow", function(){
-        setTimeout(function(){
-            $(".newParking").hide("slow");
-        }, 1500);
-    });
-});
-
-
-$(".close").click(function(){
-    $(this).parent().hide();
-});
-
-
-// The event listeners for the Map
-
-var click1 = null;
-var startMarker = new google.maps.Marker();
-google.maps.event.addListener(map, 'click', function(event){
-    var location = event.latLng;
-
-    if(click1 === null){
-        startMarker.setMap(map);
-        startMarker.setPosition(location);
-
-        click1 = location;
-    }
-    else{
-        drawStreet(click1, location, selectedParkingType);
-        startMarker.setMap(null);
-        click1 = null;
-    }
-});
-
 
 /**
  * Add directions in parking list to displayedDirections if not in it
@@ -294,11 +270,113 @@ function adjustParking(parkingList){
                 strokeWeight: 10,
                 map: map
             });
+            addListener(polyline);
 
-            addStreet(ID, polyline, origin, destination, waypoints, category);
+            addStreet(parkingObject, polyline, origin, destination, waypoints, category);
         }
     }
 }
+
+
+// Listen to when polyline is clicked
+function addListener(polyline){
+    google.maps.event.addListener(polyline, 'click', function(event){
+        var location = event.latLng;
+        var id = this.streetID;
+        infowindow.setContent(template({
+            ID: id,
+            verification: displayedDirections[id].verification,
+            duration: displayedDirections[id].duration
+        }));
+        infowindow.setPosition(location);
+        infowindow.open(map);
+        $(".verify").click(function(){
+            $(this).toggleClass("btn-primary btn-success");
+            if ($(this).hasClass("btn-primary"))
+                $(this).text("Verify");
+            else
+                $(this).text("Verified!");
+        })
+    });
+}
+
+
+function signinCallback(authResult) {
+  if (authResult['status']['signed_in']) {
+    // Update the app to reflect a signed in user
+    // Hide the sign-in button now that the user is authorized, for example:
+    document.getElementById('signinButton').setAttribute('style', 'display: none');
+  } else {
+    // Update the app to reflect a signed out user
+    // Possible error values:
+    //   "user_signed_out" - User is signed-out
+    //   "access_denied" - User denied access to your app
+    //   "immediate_failed" - Could not automatically log in the user
+    console.log('Sign-in state: ' + authResult['error']);
+  }
+}
+
+
+/**
+ * Callback for selecting different parking types
+ */
+$(document).on('click', '.dropdown-menu li a', function () {
+    // Display and hide the alert when selecing new parking option
+    selectedParkingType = $(this).data("category");
+
+    $(".parkingType").text($(this).text());
+    $(".newParking").show("slow", function(){
+        setTimeout(function(){
+            $(".newParking").hide("slow");
+        }, 1500);
+    });
+});
+
+
+$(".close").click(function(){
+    $(this).parent().hide();
+});
+
+// Position the menutab
+$(".menutab").css("bottom", $(".menutab .tab").outerHeight()-$(".menutab").outerHeight() + "px");
+
+$(".menutab .toggle").click(function(){
+    if ($(this).find(".glyphicon").hasClass("glyphicon-chevron-down")){
+        // is pulled up, will pull down
+        $(".menutab").animate({
+            "bottom": $(".menutab .tab").outerHeight()-$(".menutab").outerHeight() + "px"
+        },"fast");
+    }
+    else {
+        // is hiding down, will pull up
+        $(".menutab").animate({
+            "bottom": "0"
+        },"fast");
+    }
+    $(this).find(".glyphicon").toggleClass("glyphicon-chevron-up glyphicon-chevron-down");
+});
+
+
+// The event listeners for the Map
+
+var click1 = null;
+var startMarker = new google.maps.Marker();
+google.maps.event.addListener(map, 'click', function(event){
+    var location = event.latLng;
+    infowindow.close();
+
+    if(click1 === null){
+        startMarker.setMap(map);
+        startMarker.setPosition(location);
+
+        click1 = location;
+    }
+    else{
+        drawStreet(click1, location, selectedParkingType);
+        startMarker.setMap(null);
+        click1 = null;
+    }
+});
 
 // findparking -> in viewport
 // eagerloading -> same as findparking but up to 2.5x width of viewport

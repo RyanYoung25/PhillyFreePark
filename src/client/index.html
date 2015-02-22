@@ -8,10 +8,13 @@
         <title>Philly Free Park (Temporary Name)</title>
 
         <link href="bootstrap3/css/bootstrap.css" rel="stylesheet" />
-        <link href="bootstrap3/css/font-awesome.css" rel="stylesheet">
+        <link href="bootstrap3/css/font-awesome.css" rel="stylesheet" />
+        <link rel="stylesheet" type="text/css" href="css/animate.min.css" />
         <link rel="stylesheet" href="css/styles.css" />
 
         <script src="http://maps.googleapis.com/maps/api/js?sensor=false&key=AIzaSyDEHivbXD5bQ76f0FqDM-keqo0K2XhRXbw" type="text/javascript"></script>
+        <!-- Google+ -->
+        <script src="https://apis.google.com/js/client:platform.js" async defer></script>
     </head>
 
     <body>
@@ -54,8 +57,50 @@
             The points selected are not on the same street. Try to avoid tapping on intersections.
         </div>
 
+        <!-- general message at bottom of screen -->
+        <!--<div class="general alert alert-info" role="alert">
+            <strong class="parkingType">Free</strong> parking type selected
+        </div>-->
+
+        <div class="menutab container">
+            <ul class="list-group">
+                <li class="tab list-group-item text-center">
+                    <a href="#" class="toggle"><span class="glyphicon glyphicon-chevron-up"></span></a>
+                    <h4 id="general-message">Tip: Click on a line to get information about a parking spot</h4>
+                </li>
+                <li class="main-body list-group-item">
+                   <p>Some info can go in here</p>
+                    <!--<span id="signinButton">
+                        <span
+                            class="g-signin"
+                            data-callback="signinCallback"
+                            data-clientid="76329476181-7e60ohdu928f5m9hqo5pt5k9akeoncau.apps.googleusercontent.com"
+                            data-cookiepolicy="single_host_origin"
+                            data-requestvisibleactions="http://schema.org/AddAction"
+                            data-scope="https://www.googleapis.com/auth/plus.me">
+                        </span>
+                    </span>-->
+                </li>
+            </ul>
+        </div>
+
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
         <script src="bootstrap3/js/bootstrap.js" type="text/javascript"></script>
+        <script type="text/javascript" src="js/handlebars-v3.0.0.js"></script>
+        <script type="text/javascript" src="js/jquery.lettering.js"></script>
+        <script type="text/javascript" src="js/jquery.textillate.js"></script>
+        <script id="entry-template" type="text/x-handlebars-template">
+            <div id="content">
+                <div id="siteNotice"></div>
+                <div id="bodyContent">
+                    <h3>Parking #{{ID}}</h3>
+                    <p>{{verification}} verification(s)</p>
+                    <p>{{duration}} hrs limit</p>
+                    <p><button class="verify btn btn-primary">Verify</button></p>
+                </div>
+            </div>
+        </script>
+
         <script type="text/javascript" src="js/FreeParking.js"></script>
     </body>
 

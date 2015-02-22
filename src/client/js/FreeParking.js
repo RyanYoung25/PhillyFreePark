@@ -3,7 +3,7 @@
 var myKey = "AIzaSyDEHivbXD5bQ76f0FqDM-keqo0K2XhRXbw";
 var googlePlusClientID = "76329476181-7e60ohdu928f5m9hqo5pt5k9akeoncau.apps.googleusercontent.com";
 var googlePlusSecret = "b8evh1RcJzdxb0YbWEfdcw7s";
-var baseURL = "http://phillyfreeparking.com/";
+var baseURL = "http://phillyfreeparking.com/api/";
 //var baseURL = "http://localhost:8000/";
 
 var styles = [
@@ -306,7 +306,15 @@ function addListener(polyline){
                 $(this).text("Verify");
             else
                 $(this).text("Verified!");
-        })
+        });
+        $(".remove").click(function(){
+            $.get(baseURL + "?call=deleteparking&ID=" + id).done(function(){
+                removeStreet(id);
+                infowindow.close();
+            }).fail(function(jqXHR, textStatus, errorThrown){
+                console.log("Error deleting data: " + errorThrown);
+            });
+        });
     });
 }
 

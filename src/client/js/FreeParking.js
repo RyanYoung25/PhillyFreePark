@@ -215,9 +215,8 @@ function removeStreet(streetID){
 };
 
 
-var baseURL = "http://144.118.119.13:8000";
-//var baseURL = "http://localhost:8000";
-var postParkingURL = baseURL + "/postPath.php";
+//var postParkingURL = "http://localhost:8000/postPath.php";
+//var postParkingURL = "http://144.118.119.13:8000/postPath.php";
 /**
  * Send a starting and ending point to server
  * Receives all points in between the two points
@@ -226,14 +225,8 @@ var postParkingURL = baseURL + "/postPath.php";
  *         category - The type of line to color the street
  */
 function postParking(startLatLng, endLatLng, category, waypoints, callback){
-    $.post(postParkingURL, { // or whatever the actual URL is
-        StartLat: startLatLng.lat(),
-        StartLong: startLatLng.lng(),
-        EndLat: endLatLng.lat(),
-        EndLong: endLatLng.lng(),
-        Waypoints: JSON.stringify(waypoints),
-        Category: category
-    }).success(function(parkingObject){
+    var postParkingURL = "http://phillyfreeparking.com/?call=addparking&StartLng=" + startLatLng.lng() + "&StartLat=" + startLatLng.lat() + "&EndLng=" + endLatLng.lng() + "&EndLat=" + endLatLng.lat() + "&Category=" + category + "&Price=0&Duration=3&Waypoints=" + JSON.stringify(waypoints);
+    $.get(postParkingURL).done(function(parkingObject){
         parkingObject = JSON.parse(parkingObject);
         if (typeof callback === "function"){
             callback(parkingObject);
@@ -286,7 +279,6 @@ google.maps.event.addListener(map, 'click', function(event){
         startMarker.setMap(null);
         click1 = null;
     }
-
 });
 
 
@@ -323,17 +315,23 @@ function adjustParking(parkingList){
     }
 };
 
-
-//var baseURL = "http://phillyfreeparking.com/?call=findparking&";
+// findparking -> in viewport
+// eagerloading -> same as findparking but up to 2.5x width of viewport
+// addparking -> give waypoints and others
+var baseURL = "http://phillyfreeparking.com/?call=findparking&";
 //var baseURL = "http://localhost:8000/postBounds.php?";
-var baseURL = "http://144.118.119.13:8000/postBounds.php?";
+//var baseURL = "http://144.118.119.13:8000/postBounds.php?";
 google.maps.event.addListener(map, 'bounds_changed', function(event){
     var nextBounds = map.getBounds(); // LatLngBounds object
     var NEPoint = nextBounds.getNorthEast();
     var SWPoint = nextBounds.getSouthWest();
 
+    console.log("NEPoint: " + NEPoint.toUrlValue());
+    console.log("SWPoint: " + SWPoint.toUrlValue());
+
     var getBoundsURL = baseURL + "LL_Lng=" + SWPoint.lng() + "&LL_Lat=" + SWPoint.lat() + "&UR_Lng=" + NEPoint.lng() + "&UR_Lat=" + NEPoint.lat();
     $.get(getBoundsURL).success(function(parkingList){
+        console.log(parkingList);
         if (typeof parkingList !== "object")
             parkingList = JSON.parse(parkingList);
 

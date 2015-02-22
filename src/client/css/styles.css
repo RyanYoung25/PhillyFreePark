@@ -32,5 +32,17 @@ html, body {
 
 
 @media (max-width: 768px){
-	
+	#menu, .legend {
+		font-size: 10px;
+	}
+
+	#menu {
+		top: 10px;
+		left: 10px;
+	}
+
+	.legend {
+		top: 10px;
+		right: 10px;
+	}
 }

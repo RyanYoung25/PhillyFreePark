@@ -280,7 +280,8 @@ function adjustParking(parkingList){
             else {
                 var marker = new google.maps.Marker({
                     map: map,
-                    position: origin
+                    position: origin,
+                    icon: "img/meter.png"
                 });
             }
         }

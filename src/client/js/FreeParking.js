@@ -22,6 +22,22 @@ var mapOptions = {
 };
 var map = new google.maps.Map($("#map")[0],mapOptions);
 
+// Try W3C Geolocation (Preferred)
+if(navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+        var initialLocation = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+        map.setCenter(initialLocation);
+    }, function() {
+        console.log("Geolocation service failed.");
+    });
+}
+// Browser doesn't support Geolocation
+else {
+    console.log("Your browser doesn't support geolocation. We've placed you in Philadelphia.");
+}
+
+
+
 var directionsService = new google.maps.DirectionsService();
 
 // Handlebars stuff
@@ -436,5 +452,4 @@ google.maps.event.addListener(map, 'bounds_changed', function(event){
     });
     
 });
-
 

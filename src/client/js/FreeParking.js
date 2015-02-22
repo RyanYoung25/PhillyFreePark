@@ -6,6 +6,15 @@ var googlePlusSecret = "b8evh1RcJzdxb0YbWEfdcw7s";
 var baseURL = "http://phillyfreeparking.com/api/";
 //var baseURL = "http://localhost:8000/";
 
+
+// line and parking meter length/size
+var maxZoom = 21;
+var maxZoomWeight = 10;
+var maxZoomImgWidth = 39;
+var maxZoomImgHeight = 75;
+
+var allMarkers = [];
+
 var styles = [
    {
      featureType: "poi",
@@ -151,7 +160,7 @@ function drawStreet(startLatLng, endLatLng, category) {
                             geodesic: true,
                             strokeColor: color,
                             strokeOpacity: 1,
-                            strokeWeight: 10,
+                            strokeWeight: Math.floor(map.getZoom()/maxZoom*maxZoomWeight),
                             map: map
                         });
                         addListener(polyline);
@@ -286,7 +295,7 @@ function adjustParking(parkingList){
                     geodesic: true,
                     strokeColor: CATEGORY[category],
                     strokeOpacity: 1,
-                    strokeWeight: 10,
+                    strokeWeight: Math.floor(map.getZoom()/maxZoom*maxZoomWeight),
                     map: map
                 });
                 addListener(polyline);
@@ -297,8 +306,12 @@ function adjustParking(parkingList){
                 var marker = new google.maps.Marker({
                     map: map,
                     position: origin,
-                    icon: "img/meter.png"
+                    icon: {
+                        url: "img/meter.png",
+                        scaledSize: new google.maps.Size(Math.floor(map.getZoom()/maxZoom*maxZoomImgWidth), Math.floor(map.getZoom()/maxZoom*maxZoomImgHeight))
+                    }
                 });
+                addStreet(parkingObject, marker, origin, destination, waypoints, category);
             }
         }
     }
@@ -450,6 +463,10 @@ google.maps.event.addListener(map, 'bounds_changed', function(event){
     }).fail(function(jqXHR, textStatus, errorThrown){
         console.log("Error sending data: " + errorThrown);
     });
+    
+});
+
+google.maps.event.addListener(map, 'zoom_changed', function(event){
     
 });
 

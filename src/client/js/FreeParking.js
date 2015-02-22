@@ -2,15 +2,21 @@
 
 var myKey = "AIzaSyDEHivbXD5bQ76f0FqDM-keqo0K2XhRXbw";
 
+var styles = [
+   {
+     featureType: "poi",
+     stylers: [
+      { visibility: "off" }
+     ]   
+    }
+];
 var mapOptions = {
-    zoom: 17,
+    zoom: 18,
     center: new google.maps.LatLng(39.9500, -75.1667), // default is Philly
-    disableDefaultUI: true
+    disableDefaultUI: true,
+    styles: styles
 };
 var map = new google.maps.Map($("#map")[0],mapOptions);
-
-// Initialize first eager loading bounds
-var eagerLoadingBounds = map.getBounds();
 
 var directionsService = new google.maps.DirectionsService();
 
@@ -80,7 +86,6 @@ function drawStreet(startLatLng, endLatLng, category) {
     var dist1 = 0, dist2 = 0, response1, response2;
 
     directionsService.route(request1, function(response, status) {
-        console.log(status);
         if (status == google.maps.DirectionsStatus.OK) {
 
             dist1 = response.routes[0].legs[0].distance.value; // first distance (in meters)
@@ -134,11 +139,14 @@ function drawStreet(startLatLng, endLatLng, category) {
 
                         postParking(actualStart, actualEnd, category, literalWaypoints, function(parkingObject){
                             addStreet(parkingObject.ID, polyline, actualStart, actualEnd, literalWaypoints, category);
-                            console.log(displayedDirections);
                         });
                     }
                     else{
-                        console.log("Your streets aren't the same");
+                        $(".invalidPoint").show("slow",function(){
+                            setTimeout(function(){
+                                $(".invalidPoint").hide("slow");
+                            }, 2000);
+                        });
                     }
 
                 }
@@ -206,16 +214,9 @@ function removeStreet(streetID){
     delete displayedDirections[streetID];
 };
 
-// Removes all streets and markers from the map
-function clearAllStreets(){
-    for (var id in displayedDirections) {
-        eraseStreet(id);
-    }
-    displayedDirections = {};
-};
 
-
-var baseURL = "http://localhost:8000";
+var baseURL = "http://144.118.119.13:8000";
+//var baseURL = "http://localhost:8000";
 var postParkingURL = baseURL + "/postPath.php";
 /**
  * Send a starting and ending point to server
@@ -244,46 +245,22 @@ function postParking(startLatLng, endLatLng, category, waypoints, callback){
 
 
 /**
- * Add a point on the map
- * @param: location - The LatLng coordinates
- */
-function addMarker(location) {
-    var marker = new google.maps.Marker({
-        position: location,
-        map: map
-    });
-    console.log("lat: " + location.lat());
-    console.log("lng: " + location.lng());
-    markers.push(marker);
-}
-
-// Removes the markers from the map
-function clearAllMarkers() {
-    for (var i = 0; i < markers.length; i++) {
-        markers[i].setMap(null);
-    }
-    markers = [];
-}
-
-
-/**
  * Callback for selecting different parking types
  */
 $(document).on('click', '.dropdown-menu li a', function () {
     // Display and hide the alert when selecing new parking option
-    $("#parkingType").text($(this).text());
+    $(".parkingType").text($(this).text());
     selectedParkingType = $(this).data("category");
-    $(".alert").show(10,function(){
+    $(".newParking").show("slow", function(){
         setTimeout(function(){
-            $(".alert").hide(1000);
-        }, 1000);
+            $(".newParking").hide("slow");
+        }, 1500);
     });
 });
 
 
-$("#resetPaths").click(clearAllStreets());
-$('.btn-group button').click(function(){
-    $(this).parent().children().removeClass('active');
+$(".close").click(function(){
+    $(this).parent().hide();
 });
 
 
@@ -291,7 +268,6 @@ $('.btn-group button').click(function(){
 
 var click1 = null;
 var startMarker = new google.maps.Marker();
-var endMarker = new google.maps.Marker();
 google.maps.event.addListener(map, 'click', function(event){
     var location = event.latLng;
 
@@ -302,14 +278,12 @@ google.maps.event.addListener(map, 'click', function(event){
     if(click1 == null){
         startMarker.setMap(map);
         startMarker.setPosition(location);
-        endMarker.setMap(null);
 
         click1 = location;
     }
     else{
         drawStreet(click1, location, selectedParkingType);
-        endMarker.setMap(map);
-        endMarker.setPosition(location);
+        startMarker.setMap(null);
         click1 = null;
     }
 
@@ -338,7 +312,7 @@ function adjustParking(parkingList){
             var polyline = new google.maps.Polyline({
                 path: waypoints,
                 geodesic: true,
-                strokeColor: CATEGORY[selectedParkingType],
+                strokeColor: CATEGORY[category],
                 strokeOpacity: 1,
                 strokeWeight: 10
             });
@@ -351,7 +325,8 @@ function adjustParking(parkingList){
 
 
 //var baseURL = "http://phillyfreeparking.com/?call=findparking&";
-var baseURL = "http://localhost:8000/postBounds.php?";
+//var baseURL = "http://localhost:8000/postBounds.php?";
+var baseURL = "http://144.118.119.13:8000/postBounds.php?";
 google.maps.event.addListener(map, 'bounds_changed', function(event){
     var nextBounds = map.getBounds(); // LatLngBounds object
     var NEPoint = nextBounds.getNorthEast();
@@ -370,7 +345,7 @@ google.maps.event.addListener(map, 'bounds_changed', function(event){
             var start = displayedDirections[id].start;
             var end = displayedDirections[id].end;
 
-            if (!(nextBounds.contains(start) && nextBounds.contains(end))) {
+            if (!(nextBounds.contains(start) || nextBounds.contains(end))) {
                 streetsToRemove.push(id);
             }
         }

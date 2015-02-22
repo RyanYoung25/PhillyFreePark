@@ -80,11 +80,13 @@ function findparking($LL_Lng,$LL_Lat,$UR_Lng,$UR_Lat){
                     AND $LL_Lat <= EndLat AND EndLat <= $UR_Lat
                   )
                   ";
-        // Query the DB
+
+                // Query the DB
         if ($result = $siteContentDB->query($query)) {
             // Iterate through the results
-            while ($parking = $result->fetch_object()) {
+             while ($parking = $result->fetch_object()) {
                 //Push the object to the parking list
+                 //echo(json_encode($parking));
                 array_push($parking_list,$parking);
             }
         }

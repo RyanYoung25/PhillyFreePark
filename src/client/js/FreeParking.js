@@ -3,8 +3,8 @@
 var myKey = "AIzaSyDEHivbXD5bQ76f0FqDM-keqo0K2XhRXbw";
 var googlePlusClientID = "76329476181-7e60ohdu928f5m9hqo5pt5k9akeoncau.apps.googleusercontent.com";
 var googlePlusSecret = "b8evh1RcJzdxb0YbWEfdcw7s";
-//var baseURL = "http://phillyfreeparking.com/";
-var baseURL = "http://localhost:8000/";
+var baseURL = "http://phillyfreeparking.com/";
+//var baseURL = "http://localhost:8000/";
 
 var styles = [
    {
@@ -51,11 +51,11 @@ displayedDirections:
 
 var selectedParkingType = "Free";
 var CATEGORY = {
-    "Free": "red",
+    "Free": "green",
     "TwoHour": "orange",
     "FourHour": "blue",
-    "NoParking": "purple",
-    "Meter": "green"
+    "NoParking": "red",
+    "Meter": "yellow"
 };
 
 //Initialize 

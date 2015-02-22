@@ -350,20 +350,17 @@ function adjustParking(parkingList){
 };
 
 
-var postBoundsURL = "http://phillyfreeparking.com/?call=findparking&LL_Lng=0&LL_Lat=0&UR_Lng=10&UR_Lat=10";
+//var baseURL = "http://phillyfreeparking.com/?call=findparking&";
+var baseURL = "http://localhost:8000/postBounds.php?";
 google.maps.event.addListener(map, 'bounds_changed', function(event){
     var nextBounds = map.getBounds(); // LatLngBounds object
     var NEPoint = nextBounds.getNorthEast();
     var SWPoint = nextBounds.getSouthWest();
 
-
-    $.post(postBoundsURL,{ // or whatever the actual URL is
-        NELat: NEPoint.lat(),
-        NELng: NEPoint.lng(),
-        SWLat: SWPoint.lat(),
-        SWLng: SWPoint.lng() 
-    }).success(function(parkingList){
-        parkingList = JSON.parse(parkingList);
+    var getBoundsURL = baseURL + "LL_Lng=" + SWPoint.lng() + "&LL_Lat=" + SWPoint.lat() + "&UR_Lng=" + NEPoint.lng() + "&UR_Lat=" + NEPoint.lat();
+    $.get(getBoundsURL).success(function(parkingList){
+        if (typeof parkingList !== "object")
+            parkingList = JSON.parse(parkingList);
 
         // adds those in the parking list and not in the displayedDirections into the displayedDirections
         adjustParking(parkingList);
